@@ -1,0 +1,24 @@
+# Alle hier gesetzten Werte können über `$addon->getProperty($key)` abgefragt werden
+
+package: nv_categorymanager # Pflichtfeld
+version: '1.0.0' # Pflichtfeld
+author: novinet GmbH & Co KG
+supportpage: https://github.com/novinet-git/nv_categorymanager
+
+# Seiten
+page:
+    title: 'nvCategoryManager' # Werte die mit `translate:` beginnen, werden anhand der Sprachdatei übersetzt. Der Addon-Präfix (hier `demo_addon_`) kann weggelassen werden.
+    icon: novinet-icon-logo
+    perm: nv_categorymanager[] # Seite ist nur für Admins erreichbar
+    pjax: true
+    subpages:
+        update:
+            title: 'Verwaltung'
+            icon: rex-icon fa-list
+        info:
+            title: 'Info'
+            icon: rex-icon fa-info
+            
+    
+requires:
+    redaxo: ^5.5.0
