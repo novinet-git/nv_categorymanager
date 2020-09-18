@@ -67,6 +67,29 @@ class nvCategoryManager
 		return $sOut;
 	}
 
+	public function parseMediaManagerMove()
+	{
+		$tree = 
+		$content = [];
+
+		$content[] = '<div class="row">';
+		$content[] = '<div class="col-sm-6">';
+		$content[] = '<strong>Quelle</strong><br><select class="form-control selectpicker" data-live-search="true" name="addon_media_cat_from">';
+		$content[] = '<option id="0">ROOT</option>';
+		$content[] = $this->getMediaManagerTreeRecAsOptions(0,0, rex_post("addon_media_cat_from", "int"));
+		$content[] = '</select>';
+		$content[] = '</div>';
+		$content[] = '<div class="col-sm-6">';
+		$content[] = '<strong>Ziel</strong><br><select class="form-control selectpicker" data-live-search="true" name="addon_media_cat_to">';
+		$content[] = '<option id="0">ROOT</option>';
+		$content[] = $this->getMediaManagerTreeRecAsOptions(0,0, rex_post("addon_media_cat_to", "int"));
+		$content[] = '</select>';
+		$content[] = '</div>';
+		$content[] = '</div>';
+
+		return implode("", $content);
+	}
+
 	public function deleteCategory($iId)
 	{
 		$oCategory = rex_sql::factory()->setQuery("SELECT * FROM " . rex::getTablePrefix() . "article WHERE id = '$iId' && clang_id = '" . $this->getDefaultClangId() . "' Limit 1");
@@ -89,9 +112,15 @@ class nvCategoryManager
 
 	public function copyCategory($iSourceId, $iTargetId)
 	{
-		$aArticles = $this->getArticles($iSourceId);
 		$iNewCategoryId = rex_article_service::copyArticle($iSourceId, $iTargetId);
 		rex_article_service::article2category($iNewCategoryId);
+		
+		$sql = rex_sql::factory();
+		$query = "SELECT catname FROM rex_article WHERE id = :sourceId AND clang_id = :clang_id";
+		$sql->setQuery($query, ["sourceId" => $iSourceId, "clang_id" => $this->getDefaultClangId()]);
+
+		$query = "UPDATE rex_article SET catname = :catname WHERE id = :new_id AND clang_id = :clang_id";
+		$sql->setQuery($query, ["catname" => $sql->getValue("catname") . " Kopie", "new_id" => $iNewCategoryId, "clang_id" => $this->getDefaultClangId()]);
 
 		// get articles
 		$aArticles = $this->getArticles($iSourceId);
@@ -104,6 +133,78 @@ class nvCategoryManager
 		foreach ($aChildrenCategories as $iCategoryId) {
 			$this->copyCategory($iCategoryId, $iNewCategoryId);
 		}
+	}
+
+	public function moveMediaManagerCategory(rex_sql $sql, int $from = null, int $to = null) : void
+	{
+		if ($from === null || $to === null) throw new Exception("Ungenügende Parameteranzahl");
+		if (!$this->validateMove($from, $to)) throw new Exception("Kategorie kann nicht in sich selbst verschoben werden.");
+
+		$querySelectRootCategories = "SELECT id FROM rex_media_category WHERE parent_id='0'";
+
+		//$sql->setQuery("INSERT INTO rex_config (rex_config.namespace, rex_config.key, rex_config.value) VALUES ('test', 'test', 'test')");
+
+		if ($from === 0)
+		{
+			$query = "UPDATE rex_media SET category_id = :pid WHERE category_id = :fid";
+			$sql->setQuery($query, ["pid" => $to, "fid" => $from]);
+
+			$sql->setQuery($querySelectRootCategories);
+			if (!$sql->getRows()) throw new Exception("Keine Rootkategorie vorhanden.");
+
+			$rows = $sql->getArray();
+
+			$sql->prepareQuery("UPDATE rex_media_category SET parent_id=:pid WHERE id=:id");
+
+			$toCat = rex_media_category::get($to);
+			$toPath = $toCat->getPathAsArray();
+
+			foreach($rows as $row)
+			{
+				if (!in_array($row["id"], $toPath) && $row["id"] != $to) 
+				{
+					$sql->execute(["pid" => $to, "id" => $row["id"]]); 
+				}
+			}
+		}
+		else 
+		{
+			$query = "UPDATE rex_media_category SET parent_id = :pid WHERE id = :fid";
+			$sql->setQuery($query, ["pid" => $to, "fid" => $from]);
+		}
+	
+		$sql->setQuery($querySelectRootCategories);
+		if (!$sql->getRows()) throw new Exception("Keine Rootkategorie vorhanden.");
+	
+		foreach($sql->getArray() as $row)
+		{
+			$category = rex_media_category::get($row["id"]);
+			$this->recBuildMediaCategoryPaths($sql, $category);
+		}
+	}
+
+	function recBuildMediaCategoryPaths(rex_sql $sql, rex_media_category $category = null, string $toPath = "|") : void 
+	{
+		$children = $category->getChildren();
+		$query = "UPDATE rex_media_category SET path=:path WHERE id=:id";
+		$sql->setQuery($query, ["path" => $toPath, "id" => $category->getId()]);
+		foreach($children as $child) $this->recBuildMediaCategoryPaths($sql, $child, $toPath . $category->getId() . "|");
+	}
+
+	function validateMove(int $from, int $to) : bool
+	{
+		if ($from === 0 && $to === 0) return false;
+		if ($from == $to) return false;
+		$toCat = rex_media_category::get($to);
+		$path = $to === 0 ? [] : $toCat->getPathAsArray();
+
+		foreach($path as $sId)
+		{
+			$iId = intval($sId);
+			if (!$iId || $iId == $from) return false;
+		}
+
+		return true;
 	}
 
 	function getChildrenCategories($iParentId)
@@ -126,5 +227,29 @@ class nvCategoryManager
 			array_push($aArticles, $oArticles->getValue(id));
 		}
 		return $aArticles;
+	}
+
+	function getMediaManagerTreeRecAsOptions(int $catId=0, int $level=0, int $selected) : string
+	{
+		$sql = rex_sql::factory();
+		$query = "SELECT id, parent_id, name FROM rex_media_category WHERE parent_id=:id"; 
+		$sql->setQuery($query, ["id" => $catId]);
+		if (!$sql->getRows()) return "";
+
+		$data = "";
+		foreach($sql as $row)
+		{
+			$s = $selected==$row->getValue("id")?'selected':'';
+			$data .= '<option ' . $s . ' value="' . $row->getValue("id") . '">' . $this->getLevelIntendation($level) . $row->getValue("name") . '</option>';
+			$data .= $this->getMediaManagerTreeRecAsOptions($row->getValue("id"), $level + 1, $selected);
+		}
+		return $data;
+	}
+
+	function getLevelIntendation(int $level) : string 
+	{
+		$data = "";
+		for($i = 0; $i < $level; $i++) $data .= '&nbsp;&nbsp;';
+		return $data;
 	}
 }
