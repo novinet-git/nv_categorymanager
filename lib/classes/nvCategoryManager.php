@@ -134,6 +134,15 @@ class nvCategoryManager
             $this->copyCategory($iCategoryId, $iNewCategoryId);
         }
     }
+    
+    
+    
+    public function copyArticle($iSourceId, $iTargetId)
+    {
+      
+      rex_content_service::copyContent($iSourceId, $iTargetId, $this->getDefaultClangId(), $this->getDefaultClangId());
+      
+    }
 
     public function moveMediaManagerCategory(rex_sql $sql, int $from = null, int $to = null) : void
     {
