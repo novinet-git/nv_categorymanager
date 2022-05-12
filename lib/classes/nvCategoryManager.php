@@ -58,7 +58,7 @@ class nvCategoryManager
                 $aOut[] = '&nbsp;&nbsp;';
             }
 
-            $aOut[] = $aItem['name'] . '</option>';
+			$aOut[] = $aItem['name'] . ' (' . $aItem['id'] . ')</option>';
             if (count($aItem['children'])) {
                 $aOut[] = $this->parseTreeSelection($sFieldname, $aItem['children']);
             }
