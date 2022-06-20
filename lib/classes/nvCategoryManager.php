@@ -10,11 +10,11 @@ class nvCategoryManager
     {
         $aItems = array();
         $oItems = rex_sql::factory();
-        $sQuery = "SELECT catname,id,parent_id,priority FROM " . rex::getTablePrefix() . "article WHERE parent_id = '$iParentId' && startarticle = '1' && clang_id = '" . $this->getDefaultClangId() . "'  ORDER BY catpriority ASC";
+        $sQuery = "SELECT catname,id,parent_id,priority,catpriority FROM " . rex::getTablePrefix() . "article WHERE parent_id = '$iParentId' && startarticle = '1' && clang_id = '" . $this->getDefaultClangId() . "'  ORDER BY catpriority ASC";
         $oItems->setQuery($sQuery);
 
         foreach ($oItems as $oItem) {
-            array_push($aItems, array(name => $oItem->getValue('catname'), level => $iLevel, priority => $oItem->getValue(catpriority), id => $oItem->getValue(id), parent_id => $oItem->getValue('parent_id'), children => $this->getTree($oItem->getValue('id'), $iLevel + 1)));
+            array_push($aItems, array('name' => $oItem->getValue('catname'), 'level' => $iLevel, 'priority' => $oItem->getValue('catpriority'), 'id' => $oItem->getValue('id'), 'parent_id' => $oItem->getValue('parent_id'), 'children' => $this->getTree($oItem->getValue('id'), $iLevel + 1)));
         }
 
         return $aItems;
@@ -93,7 +93,7 @@ class nvCategoryManager
     public function deleteCategory($iId)
     {
         $oCategory = rex_sql::factory()->setQuery("SELECT * FROM " . rex::getTablePrefix() . "article WHERE id = '$iId' && clang_id = '" . $this->getDefaultClangId() . "' Limit 1");
-        $iParentId = $oCategory->getValue(parent_id);
+        $iParentId = $oCategory->getValue('parent_id');
         $aArticles = $this->getArticles($iId);
         foreach ($aArticles as $iArticleId) {
             rex_article_service::_deleteArticle($iArticleId);
@@ -231,7 +231,7 @@ class nvCategoryManager
         $oSql = rex_sql::factory();
         $oSql->setQuery("SELECT * FROM " . rex::getTablePrefix() . "article WHERE parent_id = '$iParentId' && clang_id = '" . $this->getDefaultClangId() . "' && catpriority != '0' ORDER BY catpriority ASC");
         foreach ($oSql as $oCategories) {
-            array_push($aCategories, $oCategories->getValue(id));
+            array_push($aCategories, $oCategories->getValue('id'));
         }
         return $aCategories;
     }
@@ -242,7 +242,7 @@ class nvCategoryManager
         $oSql = rex_sql::factory();
         $oSql->setQuery("SELECT * FROM " . rex::getTablePrefix() . "article WHERE parent_id = '$iParentId' && clang_id = '" . $this->getDefaultClangId() . "' && catpriority = '0' ORDER BY priority ASC");
         foreach ($oSql as $oArticles) {
-            array_push($aArticles, $oArticles->getValue(id));
+            array_push($aArticles, $oArticles->getValue('id'));
         }
         return $aArticles;
     }
