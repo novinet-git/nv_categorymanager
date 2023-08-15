@@ -4,6 +4,7 @@ class nvCategoryManager
 {
     public function __construct()
     {
+        $this->addon = rex_addon::get('nv_categorymanager');
     }
 
     public function getTree($iParentId = 0, $iLevel = 0)
@@ -120,7 +121,11 @@ class nvCategoryManager
         $sql->setQuery($query, ["sourceId" => $iSourceId, "clang_id" => $this->getDefaultClangId()]);
 
         $query = "UPDATE rex_article SET catname = :catname WHERE id = :new_id AND clang_id = :clang_id";
-        $sql->setQuery($query, ["catname" => $sql->getValue("catname") . " Kopie", "new_id" => $iNewCategoryId, "clang_id" => $this->getDefaultClangId()]);
+        $sCatname = $sql->getValue("catname");
+        if ($this->addon->getConfig("suffix") != "") {
+            $sCatname .= " ".$this->addon->getConfig("suffix");
+        }
+        $sql->setQuery($query, ["catname" => $sCatname, "new_id" => $iNewCategoryId, "clang_id" => $this->getDefaultClangId()]);
 
         // get articles
         $aArticles = $this->getArticles($iSourceId);

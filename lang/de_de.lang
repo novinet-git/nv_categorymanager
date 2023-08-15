@@ -1,3 +1,5 @@
 # addon:nv_categorymanager de_de
 
 nv_categorymanager_title = Struktur Kategorieverwaltung
+nv_categorymanager_settings = Einstellungen
+nv_categorymanager_suffix = Suffix beim Kopieren (z.B. [Kopie])

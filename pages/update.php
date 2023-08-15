@@ -87,6 +87,11 @@ if (rex_post('addon_action', 'string')) {
 $aTree = $oManager->getTree();
 $sContent = '<div class="container-fluid">';
 $sContent .= $oManager->parseTreeList($aTree);
+if ($oManager->addon->getConfig("suffix")) {
+    $sContent .= '<p>Info: Beim Kopiervorgang wird der Name der neuen Kategorie um <strong>' . $oManager->addon->getConfig("suffix") . '</strong> ergänzt. Diese Option kann über die Einstellungen geändert werden.</p>';
+} else {
+    $sContent .= '<p>Info: Beim Kopiervorgang wird der Name der neuen Kategorie unverändert übernommen. Diese Option kann über die Einstellungen geändert werden.</p>';
+}
 $sContent .= '</div>';
 
 
