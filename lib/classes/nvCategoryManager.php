@@ -255,7 +255,7 @@ class nvCategoryManager
     public function getMediaManagerTreeRecAsOptions(int $catId=0, int $level=0, int $selected) : string
     {
         $sql = rex_sql::factory();
-        $query = "SELECT id, parent_id, name FROM rex_media_category WHERE parent_id=:id";
+        $query = "SELECT id, parent_id, name FROM " . rex::getTablePrefix() . "media_category WHERE parent_id=:id";
         $sql->setQuery($query, ["id" => $catId]);
         if (!$sql->getRows()) {
             return "";
