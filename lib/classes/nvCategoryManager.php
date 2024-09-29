@@ -117,10 +117,10 @@ class nvCategoryManager
         rex_article_service::article2category($iNewCategoryId);
         
         $sql = rex_sql::factory();
-        $query = "SELECT catname FROM rex_article WHERE id = :sourceId AND clang_id = :clang_id";
+        $query = "SELECT catname FROM " . rex::getTablePrefix . "article WHERE id = :sourceId AND clang_id = :clang_id";
         $sql->setQuery($query, ["sourceId" => $iSourceId, "clang_id" => $this->getDefaultClangId()]);
 
-        $query = "UPDATE rex_article SET catname = :catname WHERE id = :new_id AND clang_id = :clang_id";
+        $query = "UPDATE " . rex::getTablePrefix . "article SET catname = :catname WHERE id = :new_id AND clang_id = :clang_id";
         $sCatname = $sql->getValue("catname");
         if ($this->addon->getConfig("suffix") != "") {
             $sCatname .= " ".$this->addon->getConfig("suffix");
@@ -158,12 +158,12 @@ class nvCategoryManager
             throw new Exception("Kategorie kann nicht in sich selbst verschoben werden.");
         }
 
-        $querySelectRootCategories = "SELECT id FROM rex_media_category WHERE parent_id='0'";
+        $querySelectRootCategories = "SELECT id FROM " . rex::getTablePrefix . "media_category WHERE parent_id='0'";
 
         //$sql->setQuery("INSERT INTO rex_config (rex_config.namespace, rex_config.key, rex_config.value) VALUES ('test', 'test', 'test')");
 
         if ($from === 0) {
-            $query = "UPDATE rex_media SET category_id = :pid WHERE category_id = :fid";
+            $query = "UPDATE " . rex::getTablePrefix . "media SET category_id = :pid WHERE category_id = :fid";
             $sql->setQuery($query, ["pid" => $to, "fid" => $from]);
 
             $sql->setQuery($querySelectRootCategories);
@@ -173,7 +173,7 @@ class nvCategoryManager
 
             $rows = $sql->getArray();
 
-            $sql->prepareQuery("UPDATE rex_media_category SET parent_id=:pid WHERE id=:id");
+            $sql->prepareQuery("UPDATE " . rex::getTablePrefix . "media_category SET parent_id=:pid WHERE id=:id");
 
             $toCat = rex_media_category::get($to);
             $toPath = $toCat->getPathAsArray();
@@ -184,7 +184,7 @@ class nvCategoryManager
                 }
             }
         } else {
-            $query = "UPDATE rex_media_category SET parent_id = :pid WHERE id = :fid";
+            $query = "UPDATE " . rex::getTablePrefix . "media_category SET parent_id = :pid WHERE id = :fid";
             $sql->setQuery($query, ["pid" => $to, "fid" => $from]);
         }
     
@@ -202,7 +202,7 @@ class nvCategoryManager
     public function recBuildMediaCategoryPaths(rex_sql $sql, rex_media_category $category = null, string $toPath = "|") : void
     {
         $children = $category->getChildren();
-        $query = "UPDATE rex_media_category SET path=:path WHERE id=:id";
+        $query = "UPDATE " . rex::getTablePrefix . "media_category SET path=:path WHERE id=:id";
         $sql->setQuery($query, ["path" => $toPath, "id" => $category->getId()]);
         foreach ($children as $child) {
             $this->recBuildMediaCategoryPaths($sql, $child, $toPath . $category->getId() . "|");
